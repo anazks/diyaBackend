@@ -1,5 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
+import mongoose from 'mongoose';
 import { User, IUserDocument } from '../models/User';
 import { AuditLog } from '../models/AuditLog';
 
@@ -9,22 +11,40 @@ export interface AuthenticatedRequest extends Request {
   user?: IUserDocument;
 }
 
+/** The single account everyone shares when OPEN_ACCESS is on (no sign-in). */
+function getSharedFamilyUser() {
+  return User.findOneAndUpdate(
+    { email: 'family@memorial.local' },
+    {
+      $setOnInsert: {
+        name: 'Family',
+        relationship: 'Family',
+        role: 'admin',
+        isActive: true,
+        password: crypto.randomBytes(32).toString('hex'), // never used to sign in
+      },
+    },
+    { upsert: true, new: true }
+  );
+}
+
 export async function requireAuth(
   req: AuthenticatedRequest,
   res: Response,
   next: NextFunction
 ): Promise<void> {
+  if (mongoose.connection.readyState !== 1) {
+    res.status(503).json({ error: 'The server is not connected to its database. Start MongoDB, then restart the server.' });
+    return;
+  }
+
   try {
     const authHeader = req.headers.authorization;
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      // In development mode, allow fallback header or demo user if token is missing
-      const demoEmail = req.headers['x-demo-user-email'] as string;
-      if (demoEmail) {
-        const found = await User.findOne({ email: demoEmail });
-        if (found) {
-          req.user = found;
-          return next();
-        }
+      if (!authHeader && process.env.OPEN_ACCESS === 'true') {
+        req.user = (await getSharedFamilyUser()) as IUserDocument;
+        next();
+        return;
       }
 
       res.status(401).json({ error: 'Authentication required to view memorial records' });
@@ -43,6 +63,11 @@ export async function requireAuth(
     req.user = user;
     next();
   } catch (error) {
+    if (!(error instanceof jwt.JsonWebTokenError)) {
+      console.error('Authentication check failed:', error);
+      res.status(500).json({ error: 'The server could not check your access. Please try again.' });
+      return;
+    }
     res.status(401).json({ error: 'Invalid or expired authentication token' });
   }
 }

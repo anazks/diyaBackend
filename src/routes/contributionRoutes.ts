@@ -4,6 +4,8 @@ import { Memory } from '../models/Memory';
 import { Video } from '../models/Video';
 import { AudioMemory } from '../models/AudioMemory';
 import { Letter } from '../models/Letter';
+import { Media } from '../models/Media';
+import { resolveUploadedMedia } from '../middleware/media';
 import { requireAuth, requireAdmin, AuthenticatedRequest, recordAudit } from '../middleware/auth';
 
 const router = Router();
@@ -32,7 +34,7 @@ router.get('/', requireAuth, async (req: AuthenticatedRequest, res: Response): P
 });
 
 // POST /api/contributions (Submit contribution)
-router.post('/', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.post('/', requireAuth, resolveUploadedMedia, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const {
       type,
@@ -106,6 +108,7 @@ router.patch('/:id/review', requireAuth, requireAdmin, async (req: Authenticated
 
     // If approved, automatically convert and publish to the main memorial collections
     if (status === 'approved') {
+      const media = contribution.mediaUrl ? await Media.findOne({ url: contribution.mediaUrl }) : null;
       if (contribution.type === 'photo' && contribution.mediaUrl) {
         await Memory.create({
           title: contribution.title,
@@ -113,6 +116,7 @@ router.patch('/:id/review', requireAuth, requireAdmin, async (req: Authenticated
           mediaType: 'photo',
           category: contribution.category || 'Family',
           mediaUrl: contribution.mediaUrl,
+          thumbnailUrl: media?.thumbnailUrl,
           s3Key: contribution.s3Key,
           isFavorite: false,
           uploadedBy: contribution.submittedBy,
@@ -123,6 +127,7 @@ router.patch('/:id/review', requireAuth, requireAdmin, async (req: Authenticated
           caption: contribution.note,
           category: contribution.category || 'Family',
           mediaUrl: contribution.mediaUrl,
+          thumbnailUrl: media?.thumbnailUrl,
           s3Key: contribution.s3Key,
           uploadedBy: contribution.submittedBy,
         });

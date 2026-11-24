@@ -1,0 +1,23 @@
+# Node modules
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+
+# Build output
+dist/
+build/
+
+# Uploads & local storage fallback
+uploads/
+scratch/
+
+# Environment variables
+.env
+.env*.local
+
+# System files
+.DS_Store
+Thumbs.db
+
+# Local development database
+.localdb/

@@ -1,5 +1,6 @@
 import { Router, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
+import rateLimit from 'express-rate-limit';
 import { User } from '../models/User';
 import { requireAuth, AuthenticatedRequest, recordAudit } from '../middleware/auth';
 
@@ -10,13 +11,34 @@ function signToken(userId: string): string {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: '30d' });
 }
 
+const credentialLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 20,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many attempts. Please wait a few minutes and try again.' },
+});
+
 // POST /api/auth/register
-router.post('/register', async (req: Request, res: Response): Promise<void> => {
+router.post('/register', credentialLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
-    const { name, email, password, relationship, role } = req.body;
+    const { name, email, password, relationship, inviteCode } = req.body;
 
     if (!name || !email || !password || !relationship) {
       res.status(400).json({ error: 'Please provide name, email, password, and relationship to Diya' });
+      return;
+    }
+
+    if (typeof email !== 'string' || typeof password !== 'string' || password.length < 8) {
+      res.status(400).json({ error: 'Password must be at least 8 characters' });
+      return;
+    }
+
+    // The first account is the administrator; everyone after needs the family invite code
+    const userCount = await User.countDocuments();
+    const familyCode = process.env.FAMILY_INVITE_CODE;
+    if (userCount > 0 && (!familyCode || inviteCode !== familyCode)) {
+      res.status(403).json({ error: 'A valid family invite code is required' });
       return;
     }
 
@@ -26,9 +48,7 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       return;
     }
 
-    // First user or specified admin
-    const userCount = await User.countDocuments();
-    const assignedRole = userCount === 0 ? 'admin' : (role || 'family_member');
+    const assignedRole = userCount === 0 ? 'admin' : 'family_member';
 
     const newUser = await User.create({
       name,
@@ -36,7 +56,6 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
       password,
       relationship,
       role: assignedRole,
-      avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=200&q=80`,
     });
 
     const token = signToken(newUser._id.toString());
@@ -67,11 +86,11 @@ router.post('/register', async (req: Request, res: Response): Promise<void> => {
 });
 
 // POST /api/auth/login
-router.post('/login', async (req: Request, res: Response): Promise<void> => {
+router.post('/login', credentialLimiter, async (req: Request, res: Response): Promise<void> => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (typeof email !== 'string' || typeof password !== 'string' || !email || !password) {
       res.status(400).json({ error: 'Please enter email and password' });
       return;
     }

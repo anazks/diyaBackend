@@ -8,3 +8,4 @@ export * from './Letter';
 export * from './Contribution';
 export * from './SpecialDate';
 export * from './AuditLog';
+export * from './Media';

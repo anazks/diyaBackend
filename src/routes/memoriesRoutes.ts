@@ -1,7 +1,8 @@
 import { Router, Response } from 'express';
 import { Memory } from '../models/Memory';
 import { Album } from '../models/Album';
-import { requireAuth, AuthenticatedRequest, recordAudit } from '../middleware/auth';
+import { resolveUploadedMedia } from '../middleware/media';
+import { requireAuth, requireAdmin, AuthenticatedRequest, recordAudit } from '../middleware/auth';
 import { deleteS3Object } from '../services/s3Service';
 
 const router = Router();
@@ -77,7 +78,7 @@ router.get('/:id', requireAuth, async (req: AuthenticatedRequest, res: Response)
 });
 
 // POST /api/memories
-router.post('/', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.post('/', requireAuth, requireAdmin, resolveUploadedMedia, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const {
       title,
@@ -182,7 +183,7 @@ router.put('/:id', requireAuth, async (req: AuthenticatedRequest, res: Response)
 });
 
 // DELETE /api/memories/:id
-router.delete('/:id', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.delete('/:id', requireAuth, requireAdmin, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const memory = await Memory.findById(req.params.id);
     if (!memory) {

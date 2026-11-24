@@ -1,5 +1,6 @@
 import { Router, Response } from 'express';
 import { AudioMemory } from '../models/AudioMemory';
+import { resolveUploadedMedia } from '../middleware/media';
 import { requireAuth, AuthenticatedRequest, recordAudit } from '../middleware/auth';
 import { deleteS3Object } from '../services/s3Service';
 
@@ -32,7 +33,7 @@ router.get('/', requireAuth, async (req: AuthenticatedRequest, res: Response): P
 });
 
 // POST /api/audio
-router.post('/', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.post('/', requireAuth, resolveUploadedMedia, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { title, description, mediaUrl, s3Key, duration, waveformPoints, recordedDate, isFavorite } = req.body;
 

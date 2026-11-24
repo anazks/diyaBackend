@@ -1,7 +1,6 @@
 import mongoose from 'express';
 import mongooseDriver from 'mongoose';
 import dotenv from 'dotenv';
-import bcrypt from 'bcryptjs';
 
 dotenv.config();
 
@@ -37,12 +36,13 @@ async function seed() {
     console.log('Cleared existing memorial data.');
 
     // 1. Create Users
-    const passwordHash = await bcrypt.hash('password123', 10);
+    // The User model hashes passwords on save
+    const password = 'password123';
 
     const admin = await User.create({
       name: 'Arjun Sharma',
       email: 'arjun@memorial.family',
-      password: passwordHash,
+      password,
       role: 'admin',
       relationship: 'Elder Brother',
       avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=300&q=80',
@@ -51,7 +51,7 @@ async function seed() {
     const mother = await User.create({
       name: 'Sunita Sharma',
       email: 'mom@memorial.family',
-      password: passwordHash,
+      password,
       role: 'family_member',
       relationship: 'Mother',
       avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=300&q=80',
@@ -60,7 +60,7 @@ async function seed() {
     const friend = await User.create({
       name: 'Priya Mehra',
       email: 'priya@memorial.family',
-      password: passwordHash,
+      password,
       role: 'contributor',
       relationship: 'Best Friend',
       avatarUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=300&q=80',
@@ -130,7 +130,7 @@ async function seed() {
         albumId: albumCelebrations._id,
         mediaUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=1000&q=80',
         thumbnailUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80',
-        dateTaken: new Date('2023-04-14'),
+        dateTaken: new Date('2023-07-20'),
         location: 'Family Living Room',
         isFavorite: true,
         uploadedBy: mother._id,
@@ -252,9 +252,9 @@ async function seed() {
     await TimelineEvent.create([
       {
         year: 2009,
-        date: 'April 14, 2009',
+        date: 'July 20, 2009',
         title: 'Welcome to the World, Little Angel',
-        description: 'Diya arrived on a sunny Tuesday morning, bringing an ocean of warmth into our family.',
+        description: 'Diya arrived on a sunny Monday morning, bringing an ocean of warmth into our family.',
         location: 'Apollo Hospital, New Delhi',
         photos: ['https://images.unsplash.com/photo-1502086223501-7ea6ecd79368?auto=format&fit=crop&w=800&q=80'],
         order: 1,
@@ -264,7 +264,7 @@ async function seed() {
         year: 2014,
         date: 'July 8, 2014',
         title: 'First Day of Primary School',
-        description: 'Age 5, she didn’t cry for a single second. She marched in with her yellow backpack and made three friends in five minutes.',
+        description: 'Almost five, she didn’t cry for a single second. She marched in with her yellow backpack and made three friends in five minutes.',
         location: 'St. Mary’s Academy',
         photos: ['https://images.unsplash.com/photo-1509062522246-3755977927d7?auto=format&fit=crop&w=800&q=80'],
         order: 2,
@@ -302,7 +302,7 @@ async function seed() {
       },
       {
         year: 2025,
-        date: 'April 14, 2025',
+        date: 'July 20, 2025',
         title: 'Sweet 16 Celebration & Strumming Songs',
         description: 'Her 16th birthday party, singing her favourite songs with friends and lighting 16 golden candles.',
         location: 'Family Courtyard',
@@ -378,9 +378,9 @@ async function seed() {
     await SpecialDate.create([
       {
         title: 'Diya’s Birthday',
-        date: '2009-04-14',
-        month: 4,
-        day: 14,
+        date: '2009-07-20',
+        month: 7,
+        day: 20,
         year: 2009,
         type: 'birthday',
         notes: 'We celebrate her life by planting yellow roses and sharing her favourite almond cake.',

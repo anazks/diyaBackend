@@ -1,6 +1,7 @@
 import { Router, Response } from 'express';
 import { Video } from '../models/Video';
-import { requireAuth, AuthenticatedRequest, recordAudit } from '../middleware/auth';
+import { resolveUploadedMedia } from '../middleware/media';
+import { requireAuth, requireAdmin, AuthenticatedRequest, recordAudit } from '../middleware/auth';
 import { deleteS3Object } from '../services/s3Service';
 
 const router = Router();
@@ -46,7 +47,7 @@ router.get('/:id', requireAuth, async (req: AuthenticatedRequest, res: Response)
 });
 
 // POST /api/videos
-router.post('/', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.post('/', requireAuth, requireAdmin, resolveUploadedMedia, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const { title, caption, category, mediaUrl, thumbnailUrl, s3Key, duration, fileSize } = req.body;
 
@@ -84,7 +85,7 @@ router.post('/', requireAuth, async (req: AuthenticatedRequest, res: Response): 
 });
 
 // DELETE /api/videos/:id
-router.delete('/:id', requireAuth, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
+router.delete('/:id', requireAuth, requireAdmin, async (req: AuthenticatedRequest, res: Response): Promise<void> => {
   try {
     const video = await Video.findById(req.params.id);
     if (!video) {

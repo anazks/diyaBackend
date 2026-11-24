@@ -20,6 +20,8 @@ import contributionRoutes from './routes/contributionRoutes';
 import specialDateRoutes from './routes/specialDateRoutes';
 import uploadRoutes from './routes/uploadRoutes';
 import adminRoutes from './routes/adminRoutes';
+import mediaRoutes from './routes/mediaRoutes';
+import { signMediaUrls } from './middleware/media';
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -44,6 +46,12 @@ app.get('/api/health', (_req: Request, res: Response) => {
   });
 });
 
+// Private media is only ever returned as expiring signed links
+app.use(
+  ['/api/media', '/api/memories', '/api/videos', '/api/audio', '/api/contributions', '/api/admin'],
+  signMediaUrls
+);
+
 // Mount API routes
 app.use('/api/auth', authRoutes);
 app.use('/api/memories', memoriesRoutes);
@@ -56,6 +64,7 @@ app.use('/api/contributions', contributionRoutes);
 app.use('/api/special-dates', specialDateRoutes);
 app.use('/api/upload', uploadRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/media', mediaRoutes);
 
 // Global Error Handler
 app.use((err: any, _req: Request, res: Response, _next: any) => {
